@@ -10,11 +10,12 @@ function Tunnel(sv,p) {
     this.portnum = p;
 }
 
-//Tunnel.prototype.
-
-function addTunnel(portnum) {
+function addTunnel(portnum, target_conn ) {
     var sv = net.createServer( function(conn) {
         console.log("Connection for tunnel from " + conn.remoteAddress );
+        conn.on( "data", function(d) {
+            target_conn.receiveRemoteData(portnum,d);
+        });
     });
     
     sv.listen( portnum, "0.0.0.0" );
@@ -39,6 +40,11 @@ var server = net.createServer( function(conn) {
     var o = [ "hello", "world" ];
     conn.write( msgpack.pack(o) );    
 
+    conn.receiveRemoteData = function( portnum, data ) {
+        console.log( "receiveRemoteData from port:", portnum, " datalen:", data.length );
+        var o = [ "data", portnum, data ];
+        conn.write( msgpack.pack(o));
+    }
     
     var ms = new msgpack.Stream(conn);
     ms.addListener( "msg", function(m) {
@@ -50,7 +56,7 @@ var server = net.createServer( function(conn) {
             conn.write( msgpack.pack(rest) );            
         } else if( cmd == "tunnel" ) { // create a new tunnel port. arg=["add", PORTNUM] ret=["OK"] or ["ERROR"]
             var portnum = m[1];
-            var tun = addTunnel( portnum );
+            var tun = addTunnel( portnum, conn );
             console.log("new tunnel:", tun );
             conn.tunnels.push(tun);
         } else if( cmd == "list" ) {
