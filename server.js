@@ -16,6 +16,12 @@ var server = net.createServer( function(conn) {
     var ms = new msgpack.Stream(conn);
     ms.addListener( "msg", function(m) {
         console.log( "received message:", m );
+        var cmd = m[0];
+        
+        if( cmd == "echo" ) {
+            var rest = m.slice(1,1+m.length);
+            conn.write( msgpack.pack(rest) );            
+        }
     });
 
     
