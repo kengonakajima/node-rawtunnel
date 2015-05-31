@@ -34,6 +34,12 @@ function addTunnel(portnum, ctrl_conn ) {
 
     sv.listen( portnum, "0.0.0.0" );
     tun.server = sv;
+    tun.finish = function() {
+        tun.server.close();
+        tun.connections.forEach( function(co) {
+            co.close();
+        });
+    }
     tun.receiveTargetData = function( cid, data ) {
         tun.connections.forEach( function(co) {
             if( co.id == cid ) {
@@ -108,7 +114,7 @@ var server = net.createServer( function(conn) {
     conn.on("close", function() {
         console.log( "Control conection closed: ", conn.remoteAddress );
         conn.tunnels.forEach( function(tun) {
-            tun.server.close();
+            tun.finish();
         });
     });
 
