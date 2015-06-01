@@ -3,9 +3,10 @@ require("assert");
 var net = require("net");
 var msgpack = require("msgpack");
 
-var controlPort = 7770;
+var control_port = 7770;
 
-
+var g_tunnels = [];
+                 
 var g_idgen = 0;
 function getNewId() {
     g_idgen ++;
@@ -116,6 +117,7 @@ var server = net.createServer( function(conn) {
             var tun = addTunnel( portnum, conn );
             console.log("new tunnel:", tun );
             conn.tunnels.push(tun);
+            g_tunnels.push(tun);
         } else if( cmd == "list" ) {
             var out = [];
             conn.tunnels.forEach( function(tun) {
@@ -149,7 +151,20 @@ var server = net.createServer( function(conn) {
     
 });
 
-server.listen( controlPort, "0.0.0.0" );
+server.listen( control_port, "0.0.0.0" );
+
+function statLog() {
+    g_tunnels.forEach( function(t) {
+        var stat = {
+            "portnum": t.portnum,
+            "connections": t.connections.length,
+            "stats": t.getStats() 
+        };
+        console.log(stat);
+    });
+}
+
+setInterval( statLog, 2000 );
 
 
 
