@@ -63,6 +63,7 @@ function addTunnel(portnum, ctrl_conn ) {
     tun.getStats = function() {
         var out = [];
         tun.connections.forEach( function(co) {
+            co.stats.id = co.id;
             out.push( co.stats );
         });
         return out;
