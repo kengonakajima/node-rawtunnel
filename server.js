@@ -1,3 +1,5 @@
+require("assert");
+
 var net = require("net");
 var msgpack = require("msgpack");
 
@@ -37,7 +39,7 @@ function addTunnel(portnum, ctrl_conn ) {
     tun.finish = function() {
         tun.server.close();
         tun.connections.forEach( function(co) {
-            co.close();
+            co.destroy();
         });
     }
     tun.receiveTargetData = function( cid, data ) {
@@ -47,6 +49,13 @@ function addTunnel(portnum, ctrl_conn ) {
             }
         });
     }
+    tun.receiveTargetError = function( cid, data ) {
+        tun.connections.forEach( function(co) {
+            if( co.id == cid ) {
+                co.destroy();
+            }
+        });        
+    };
 
     tun.error = null;
     sv.on("error",function(e){
@@ -73,12 +82,12 @@ var server = net.createServer( function(conn) {
     }
     conn.newRemoteConnection = function( portnum, cid ) {
         console.log( "newRemoteConnection: portnum:", portnum, "cid:",cid );
-        var o = [ "accept", cid ];
+        var o = [ "accept", portnum, cid ];
         conn.write( msgpack.pack(o));
     }
     conn.receiveRemoteError = function( portnum, cid, e ) {
         console.log( "receiveRemoteError: portnum",portnum, "cid:",cid, "e:",e);
-        var o = [ "error", cid, e ];
+        var o = [ "error", portnum, cid, e ];
         conn.write(msgpack.pack(o));
     }
     
@@ -89,7 +98,7 @@ var server = net.createServer( function(conn) {
         
         if( cmd == "echo" ) {
             var rest = m.slice(1,1+m.length);
-            conn.write( msgpack.pack(rest) );            
+            conn.write( msgpack.pack( ["echo"].concat(rest)) );            
         } else if( cmd == "tunnel" ) { // create a new tunnel port. arg=["add", PORTNUM] ret=["OK"] or ["ERROR"]
             var portnum = m[1];
             var tun = addTunnel( portnum, conn );
@@ -98,15 +107,22 @@ var server = net.createServer( function(conn) {
         } else if( cmd == "list" ) {
             var out = [];
             conn.tunnels.forEach( function(tun) {
-                out.push( { "port" : tun.portnum, "error" : tun.error });
+                out.push( { "port" : tun.portnum, "error" : tun.error } );
             });
-            conn.write( msgpack.pack(out));
+            conn.write( msgpack.pack( ["list"].concat(out)));
         } else if( cmd == "data" ) { // [ "data", portnum, cid, data ]
             var portnum = m[1];
             var cid = m[2];
             var data = m[3];
             conn.tunnels.forEach( function(tun) {
                 tun.receiveTargetData(cid,data);                    
+            });
+        } else if( cmd == "error" ) { // [ "error", portnum, cid, errorobj ]
+            var portnum = m[1];
+            var cid = m[2];
+            var e = m[3];
+            conn.tunnels.forEach( function(tun) {
+                tun.receiveTargetError(cid,e);
             });
         }
     });
