@@ -23,7 +23,6 @@ var server = net.createServer(function (socket) {
             for(var i=0;i<l;i++) {
                 buf.writeUInt8(i&0xff,i);
             }
-            console.log( "127-8:", buf[127], buf[128] );
             socket.write(buf);
         } else {
             socket.write(d);
