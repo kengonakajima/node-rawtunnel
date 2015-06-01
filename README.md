@@ -17,13 +17,13 @@ node-rawtunnel:
 On sshd (server) side,
 
 ~~~
-node ./server.js PASSCODE
+node ./server.js
 ~~~
 
 On ssh (client) side,
 
 ~~~
-node ./client.js -R 60000:localhost:60000 -R 60001:localhost:60001 -p PASSCODE
+node ./client.js SERVERHOST -R 60000:localhost:60000 -R 60001:localhost:60001
 ~~~
 
 
