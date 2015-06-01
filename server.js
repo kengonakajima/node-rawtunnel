@@ -87,7 +87,7 @@ var server = net.createServer( function(conn) {
     conn.write( msgpack.pack(o) );    
 
     conn.receiveRemoteData = function( portnum, cid, data ) {
-        console.log( "receiveRemoteData from port:", portnum, "cid:",cid, " datalen:", data.length );
+//        console.log( "receiveRemoteData from port:", portnum, "cid:",cid, " datalen:", data.length );
         var o = [ "data", portnum,cid,  data ];
         conn.write( msgpack.pack(o));
     }
@@ -104,7 +104,7 @@ var server = net.createServer( function(conn) {
     
     var ms = new msgpack.Stream(conn);
     ms.addListener( "msg", function(m) {
-        console.log( "received message:", m );
+//        console.log( "received message:", m );
         var cmd = m[0];
         
         if( cmd == "echo" ) {
