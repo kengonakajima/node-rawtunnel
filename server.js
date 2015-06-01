@@ -46,11 +46,11 @@ function addTunnel(portnum, ctrl_conn ) {
             co.destroy();
         });
     }
-    tun.receiveTargetData = function( cid, data ) {
+    tun.receiveTargetData = function( cid, buf ) {
         tun.connections.forEach( function(co) {
             if( co.id == cid ) {
-                co.stats.sendbytes += data.length;                
-                co.write(data);
+                co.stats.sendbytes += buf.length;                
+                co.write(buf);
             }
         });
     }
@@ -127,9 +127,12 @@ var server = net.createServer( function(conn) {
         } else if( cmd == "data" ) { // [ "data", portnum, cid, data ]
             var portnum = m[1];
             var cid = m[2];
-            var data = m[3];
+            var dataary = m[3];
+//            console.log( "recv data command. type:", typeof(dataary), "len:", dataary.length, "127,8:", dataary[127], dataary[128] );
+            var buf = new Buffer( dataary.length );
+            for(var i=0;i<dataary.length;i++) buf[i] = dataary[i];
             conn.tunnels.forEach( function(tun) {
-                tun.receiveTargetData(cid,data);                    
+                tun.receiveTargetData(cid,buf);                    
             });
         } else if( cmd == "error" ) { // [ "error", portnum, cid, errorobj ]
             var portnum = m[1];

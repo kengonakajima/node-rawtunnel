@@ -25,7 +25,10 @@ function Tunnel(remport,tgthost,tgtport) {
         co.remote_id = remote_id;
         co.on( "data", function(d) {
 //            console.log( "data from target server:", d );
-            ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, d ]));
+            var dataary = [];
+            for(var i=0;i<d.length;i++) { dataary.push( d[i] ); }                              
+//            console.log("127,8:", d[127], d[128], "dataarylen:", dataary.length, "d.length:", d.length );
+            ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, dataary ]));
         });
         co.on("error", function(e) {
             console.log( "error on connection to target:",e );
@@ -95,7 +98,7 @@ function Controller(co) {
             var portnum = m[1];
             var cid = m[2];
             var data = m[3];
-//            console.log( "sending data to target server:",data);
+//            console.log( "sending data to target server:",typeof(data));
             var tun = ctl.findTunnel(portnum);
             tun.receiveRemoteData( cid, data );
         } else if( cmd == "accept" ) { // [ connid ]
