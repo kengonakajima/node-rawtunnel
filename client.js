@@ -109,7 +109,9 @@ function Controller(co) {
             var tun = ctl.findTunnel(portnum);
             tun.close(connid);            
         } else if( cmd == "list" ) { // [ {port:N, error:MSG}, ... ] }
-            console.log( "Tunnel list:", m[1] );
+            m.slice(1).forEach( function(s) {
+                console.log( "Tunnel:", s );
+            });
         }
     };
 

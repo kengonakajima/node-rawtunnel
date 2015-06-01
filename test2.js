@@ -11,6 +11,7 @@ function genData(n) {
     }
     return ary.join(":");
 }
+var g_id = 1;
 
 // args: "IP:PORT IP:PORT IP:PORT .."
 targets.forEach( function(tgt) {
@@ -19,18 +20,17 @@ targets.forEach( function(tgt) {
     var port = parseInt(pair[1]);
 
     var co = net.connect( { "host":host,"port":port } );
-    co.count = 1
+    co.count = 500
+    co.id = g_id;
+    g_id++;
     co.on( "connect", function() {
-        for(var i=0;i<10;i++) {
-            co.write( genData(30) );
-        }
+        setInterval( function() {
+            co.write( genData(co.count) );
+            co.count++;
+        }, 30 );
     });
     co.on( "data", function(d) {
-        console.log( "data:",d.length);
-        co.write( genData(co.count) );
-        co.count ++;
-        var maxcnt = 3000;
-        if( co.count > maxcnt ) co.count = maxcnt;
+        console.log( "data:",d.length, "id:", co.id, "count:",co.count);
     });
     co.on( "error", function(e) {
         console.log( "error:", e );
