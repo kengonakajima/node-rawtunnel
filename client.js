@@ -48,7 +48,7 @@ function Tunnel(remport,tgthost,tgtport) {
                 }
             });
             if( tgtco != null ) {
-                tgtco.close();
+                tgtco.destroy();
                 var i = this.connections.indexOf(tgtco);
                 this.connections.splice(i,1);
             }
