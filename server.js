@@ -45,6 +45,7 @@ function addTunnel(portnum, ctrl_conn ) {
         tun.connections.forEach( function(co) {
             co.destroy();
         });
+        tun.connections = [];
     }
     tun.receiveTargetData = function( cid, buf ) {
         tun.connections.forEach( function(co) {
@@ -59,7 +60,7 @@ function addTunnel(portnum, ctrl_conn ) {
             if( co.id == cid ) {
                 co.destroy();
             }
-        });        
+        });
     };
     tun.getStats = function() {
         var out = [];
