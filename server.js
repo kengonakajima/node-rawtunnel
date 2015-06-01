@@ -16,6 +16,7 @@ function Tunnel(p) {
     this.server = null;
     this.portnum = p;
     this.connections = []; // store all sockets from a server
+    this.stats = []
 }
 
 function addTunnel(portnum, ctrl_conn ) {
@@ -25,7 +26,9 @@ function addTunnel(portnum, ctrl_conn ) {
         conn.id = getNewId();
         console.log("Connection for tunnel from remote:", conn.remoteAddress, conn.localAddress, "newid:", conn.id );
         ctrl_conn.newRemoteConnection(portnum,conn.id);
+        conn.stats = { "recvbytes":0, "sendbytes":0 };
         conn.on( "data", function(d) {
+            conn.stats.recvbytes += d.length;
             ctrl_conn.receiveRemoteData(portnum,conn.id,d);
         });
         conn.on( "error", function(e) {
@@ -45,6 +48,7 @@ function addTunnel(portnum, ctrl_conn ) {
     tun.receiveTargetData = function( cid, data ) {
         tun.connections.forEach( function(co) {
             if( co.id == cid ) {
+                co.stats.sendbytes += data.length;                
                 co.write(data);
             }
         });
@@ -56,6 +60,13 @@ function addTunnel(portnum, ctrl_conn ) {
             }
         });        
     };
+    tun.getStats = function() {
+        var out = [];
+        tun.connections.forEach( function(co) {
+            out.push( co.stats );
+        });
+        return out;
+    }
 
     tun.error = null;
     sv.on("error",function(e){
@@ -107,7 +118,7 @@ var server = net.createServer( function(conn) {
         } else if( cmd == "list" ) {
             var out = [];
             conn.tunnels.forEach( function(tun) {
-                out.push( { "port" : tun.portnum, "error" : tun.error } );
+                out.push( { "port" : tun.portnum, "error" : tun.error, "stats" : tun.getStats() } );
             });
             conn.write( msgpack.pack( ["list"].concat(out)));
         } else if( cmd == "data" ) { // [ "data", portnum, cid, data ]
