@@ -90,7 +90,9 @@ var server = net.createServer( function(conn) {
 
     conn.receiveRemoteData = function( portnum, cid, data ) {
 //        console.log( "receiveRemoteData from port:", portnum, "cid:",cid, " datalen:", data.length );
-        var o = [ "data", portnum,cid,  data ];
+        var dataary = [];
+        for(var i=0;i<data.length;i++) dataary[i] = data[i];
+        var o = [ "data", portnum,cid,  dataary ];
         conn.write( msgpack.pack(o));
     }
     conn.newRemoteConnection = function( portnum, cid ) {
