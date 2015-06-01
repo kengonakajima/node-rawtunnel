@@ -24,7 +24,7 @@ function Tunnel(remport,tgthost,tgtport) {
         this.connections.push(co);
         co.remote_id = remote_id;
         co.on( "data", function(d) {
-            console.log( "data from target server:", d );
+//            console.log( "data from target server:", d );
             ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, d ]));
         });
         co.on("error", function(e) {
@@ -89,13 +89,13 @@ function Controller(co) {
     }
     var ctl = this;
     this.receiveMessage = function(m) {
-        console.log( "received control message:", m );
+//        console.log( "received control message:", m );
         var cmd = m[0];
         if( cmd == "data" ) { // [ "data", portnum, data ]
             var portnum = m[1];
             var cid = m[2];
             var data = m[3];
-            console.log( "sending data to target server:",data);
+//            console.log( "sending data to target server:",data);
             var tun = ctl.findTunnel(portnum);
             tun.receiveRemoteData( cid, data );
         } else if( cmd == "accept" ) { // [ connid ]
