@@ -31,10 +31,11 @@ function Tunnel(remport,tgthost,tgtport) {
 //            console.log("127,8:", d[127], d[128], "dataarylen:", dataary.length, "d.length:", d.length );
             
             if( enable_divided_write ) {
-                var toplen = d.length/2;
+                var toplen = parseInt(d.length/2);
                 var topary = [], tailary = [];
                 for(var i=0;i<toplen;i++) { topary.push( d[i] ); }
                 for(var i=toplen;i<d.length;i++) { tailary.push( d[i] ); }
+  //              console.log( "dividing buffer into:", topary, tailary );
                 ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, topary ]));
                 ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, tailary ]));                            
             } else {

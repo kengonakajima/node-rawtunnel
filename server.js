@@ -131,7 +131,7 @@ var server = net.createServer( function(conn) {
             var portnum = m[1];
             var cid = m[2];
             var dataary = m[3];
-//            console.log( "recv data command. type:", typeof(dataary), "len:", dataary.length, "127,8:", dataary[127], dataary[128] );
+//            console.log( "recv data command. type:", typeof(dataary), "len:", dataary.length );
             var buf = new Buffer( dataary.length );
             for(var i=0;i<dataary.length;i++) buf[i] = dataary[i];
             conn.tunnels.forEach( function(tun) {
