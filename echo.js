@@ -29,6 +29,6 @@ var server = net.createServer(function (socket) {
         }        
     } );
 });
-server.listen(7777, "localhost");
+server.listen(7777, "0.0.0.0");
 console.log("TCP server listening on port 7777");
 
