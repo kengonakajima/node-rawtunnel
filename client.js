@@ -5,7 +5,7 @@ var msgpack = require("msgpack");
 var minimist = require("minimist");
 
 var control_port = 7770;
-
+var enable_divided_write = false;
 
 function Tunnel(remport,tgthost,tgtport) {
     assert(remport||tgthost||tgtport);
@@ -23,12 +23,25 @@ function Tunnel(remport,tgthost,tgtport) {
         var co = net.connect(opts);
         this.connections.push(co);
         co.remote_id = remote_id;
+        co.remote_data_count = 0;
+        co.remote_data_total_bytes = 0;
+        
         co.on( "data", function(d) {
 //            console.log( "data from target server:", d );
-            var dataary = []
-            for(var i=0;i<d.length;i++) { dataary.push( d[i] ); }                              
 //            console.log("127,8:", d[127], d[128], "dataarylen:", dataary.length, "d.length:", d.length );
-            ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, dataary ]));
+            
+            if( enable_divided_write ) {
+                var toplen = d.length/2;
+                var topary = [], tailary = [];
+                for(var i=0;i<toplen;i++) { topary.push( d[i] ); }
+                for(var i=toplen;i<d.length;i++) { tailary.push( d[i] ); }
+                ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, topary ]));
+                ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, tailary ]));                            
+            } else {
+                var dataary = []
+                for(var i=0;i<d.length;i++) { dataary.push( d[i] ); }
+                ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, dataary ]));
+            }
         });
         co.on("error", function(e) {
             console.log( "error on connection to target:",e );
@@ -39,6 +52,10 @@ function Tunnel(remport,tgthost,tgtport) {
         this.receiveRemoteData = function(remote_id, data) {
             this.connections.forEach( function(c) {
                 if( c.remote_id == remote_id ) {
+                    var len = data.length;
+                    c.remote_data_count++;
+                    c.remote_data_total_bytes += len;
+//                    console.log( "id:", c.remote_id, "datalen:", len, "cnt:", c.remote_data_count, "total:", c.remote_data_total_bytes );
                     c.write(data);
                 }
             });                               
@@ -150,6 +167,9 @@ var tunnel_args = [].concat(argv["R"]);
 
 var confs = [];
 
+if( argv["debugwrite"] == true ) enable_divided_write = true;
+
+
 tunnel_args.forEach( function(arg) {
     // arg: "TUNNELPORT:TARGETIP:TARGETPORT"
     var ary = arg.split(":");
@@ -176,4 +196,5 @@ var ctl = createController( server_host, control_port );
 confs.forEach( function(conf) {
     ctl.addTunnel( conf.tunnel_port, conf.target_host, conf.target_port );
 });
+
 
