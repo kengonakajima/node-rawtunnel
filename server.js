@@ -147,6 +147,9 @@ var server = net.createServer( function(conn) {
         }
     });
 
+    conn.on("error", function(e) {
+        console.log( "Error on control connection:", e );
+    });
     conn.on("close", function() {
         console.log( "Control conection closed: ", conn.remoteAddress );
         conn.tunnels.forEach( function(tun) {
