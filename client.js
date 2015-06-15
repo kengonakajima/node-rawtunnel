@@ -5,7 +5,7 @@ var msgpack = require("msgpack");
 var minimist = require("minimist");
 
 var control_port = 7770;
-var enable_divided_write = false;
+var enable_debug_write = false;
 
 function Tunnel(remport,tgthost,tgtport) {
     assert(remport||tgthost||tgtport);
@@ -30,7 +30,7 @@ function Tunnel(remport,tgthost,tgtport) {
 //            console.log( "data from target server:", d );
 //            console.log("127,8:", d[127], d[128], "dataarylen:", dataary.length, "d.length:", d.length );
             
-            if( enable_divided_write ) {
+            if( enable_debug_write ) {
                 var toplen = parseInt(d.length/2);
                 var topary = [], tailary = [];
                 for(var i=0;i<toplen;i++) { topary.push( d[i] ); }
@@ -91,7 +91,7 @@ function Controller(co) {
 
     setInterval( function() {
         co.write( msgpack.pack( [ "list" ] ) );
-    }, 2000 );
+    }, 10000 );
 
     this.addTunnel = function(rp,th,tp) {
         console.log("adding tunnel:", rp, th, tp );
@@ -168,7 +168,7 @@ var tunnel_args = [].concat(argv["R"]);
 
 var confs = [];
 
-if( argv["debugwrite"] == true ) enable_divided_write = true;
+if( argv["debugwrite"] == true ) enable_debug_write = true;
 
 
 tunnel_args.forEach( function(arg) {
