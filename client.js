@@ -7,6 +7,10 @@ var minimist = require("minimist");
 var control_port = 7770;
 var enable_debug_write = false;
 
+function randomIntInclusive(a,b) {
+    return Math.floor(Math.random() * (b-a+1) + a );
+}
+
 function Tunnel(remport,tgthost,tgtport) {
     assert(remport||tgthost||tgtport);
 
@@ -25,23 +29,37 @@ function Tunnel(remport,tgthost,tgtport) {
         co.remote_id = remote_id;
         co.remote_data_count = 0;
         co.remote_data_total_bytes = 0;
+        co.queue = new Buffer(0);
+        co.pushToQueue = function(buf) {
+            var newq = new Buffer( co.queue.length + buf.length );
+            co.queue.copy( newq, 0 );
+            buf.copy(newq, co.queue.length)
+            co.queue = newq;
+//            console.log( "rebuffering", buf.length, "bytes and new total:", co.queue.length, "buf:", buf );
+            return true;
+        }
+        co.getQueueUsed = function() {
+            return co.queue.length;
+        }
+        co.shiftQueue = function(reqsz) {
+            var outsz = reqsz;
+            if( outsz > co.queue.length ) outsz = co.queue.length;
+            var outbuf = new Buffer(outsz);
+            co.queue.copy( outbuf, 0, 0, outsz );
+            var sliced = this.queue.slice(outsz);
+            co.queue = sliced;
+//            console.log( "sliced buffer in ", outsz, "bytes and now length:", co.queue.length, "outbuf:",outbuf, "q:", co.queue );
+            return outbuf;        
+        }
         
         co.on( "data", function(d) {
 //            console.log( "data from target server:", d );
 //            console.log("127,8:", d[127], d[128], "dataarylen:", dataary.length, "d.length:", d.length );
-            
-            if( enable_debug_write ) {
-                var toplen = parseInt(d.length/2);
-                var topary = [], tailary = [];
-                for(var i=0;i<toplen;i++) { topary.push( d[i] ); }
-                for(var i=toplen;i<d.length;i++) { tailary.push( d[i] ); }
-  //              console.log( "dividing buffer into:", topary, tailary );
-                ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, topary ]));
-                ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, tailary ]));                            
-            } else {
-                var dataary = []
-                for(var i=0;i<d.length;i++) { dataary.push( d[i] ); }
-                ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, dataary ]));
+
+            co.pushToQueue(d);
+            if( co.getQueueUsed() > 16*1024 ) {
+                console.log( "buffer max, pausing stream" );
+                co.pause();
             }
         });
         co.on("error", function(e) {
@@ -49,6 +67,30 @@ function Tunnel(remport,tgthost,tgtport) {
             ctlco.conn.write( msgpack.pack( [ "error", this.remote_port, remote_id, e ] ));
         });
 
+        co.poll = function() {
+            var qlen = co.getQueueUsed();
+            if( qlen == 0 ) return;
+
+            var unit = randomIntInclusive(500,1000); 
+            var tosend = co.shiftQueue(unit);
+            if( co.getQueueUsed() == 0 ) {
+                co.resume();
+            }
+            
+            if( enable_debug_write ) {
+                var toplen = parseInt(tosend.length/2);
+                var topary = [], tailary = [];
+                for(var i=0;i<toplen;i++) { topary.push( tosend[i] ); }
+                for(var i=toplen;i<tosend.length;i++) { tailary.push( tosend[i] ); }
+  //              console.log( "dividing buffer into:", topary, tailary );
+                ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, topary ]));
+                ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, tailary ]));                            
+            } else {
+                var dataary = []
+                for(var i=0;i<tosend.length;i++) { dataary.push( tosend[i] ); }
+                ctlco.conn.write( msgpack.pack( [ "data", this.remote_port, remote_id, dataary ]));
+            }
+        }
         
         this.receiveRemoteData = function(remote_id, data) {
             this.connections.forEach( function(c) {
@@ -73,8 +115,14 @@ function Tunnel(remport,tgthost,tgtport) {
                 var i = this.connections.indexOf(tgtco);
                 this.connections.splice(i,1);
             }
-        }
+        };
     };    
+    this.poll = function() {
+        this.connections.forEach( function(c) {
+            c.poll();
+        });
+    }
+        
 }
 
 
@@ -140,7 +188,12 @@ function Controller(co) {
 
     var ms = new msgpack.Stream(co);
     ms.addListener( "msg", this.receiveMessage );
-    
+
+    this.poll = function() {
+        this.tunnels.forEach( function(t) {
+            t.poll();
+        })  ;
+    };
 }
 
 function createController(host,port) {
@@ -198,4 +251,6 @@ confs.forEach( function(conf) {
     ctl.addTunnel( conf.tunnel_port, conf.target_host, conf.target_port );
 });
 
-
+setInterval( function() {
+    ctl.poll();
+}, 1 );
