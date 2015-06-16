@@ -10,8 +10,6 @@ var g_tunnels = [];
                  
 var g_idgen = 0;
 
-var g_enable_rebuffering = false;
-
 function getNewId() {
     g_idgen ++;
     return g_idgen;
@@ -46,39 +44,6 @@ function addTunnel(portnum, ctrl_conn ) {
                 ctrl_conn.receiveRemoteError(portnum,conn.id,e);
             }
         });
-        // rebuffering
-        conn.queue = new Buffer(0);
-        conn.pushToQueue = function(buf) {
-            var newq = new Buffer( conn.queue.length + buf.length );
-            conn.queue.copy( newq, 0 );
-            buf.copy(newq, conn.queue.length)
-            conn.queue = newq;
-//            console.log( "rebuffering", buf.length, "bytes and new total:", this.queue.length, "buf:", buf );
-            return true;
-        }
-        conn.getQueueUsed = function() {
-            return conn.queue.length;
-        }
-        conn.shiftQueue = function(reqsz) {
-            var outsz = reqsz;
-            if( outsz > conn.queue.length ) outsz = conn.queue.length;
-            var outbuf = new Buffer(outsz);
-            conn.queue.copy( outbuf, 0, 0, outsz );
-            var sliced = this.queue.slice(outsz);
-            conn.queue = sliced;
-//            console.log( "sliced buffer in ", outsz, "bytes and now length:", conn.queue.length, "outbuf:",outbuf, "q:", conn.queue );
-            return outbuf;        
-        }
-        conn.poll = function() {
-            var used =  conn.getQueueUsed();
-            if( used > 0 ) {
-                console.log( "used:", used );
-                var unit = 2048;
-                var sendbuf = conn.shiftQueue(unit);
-                conn.write(sendbuf);
-//                console.log( "sending", sendbuf.length, "bytes to client:", sendbuf );
-            }                    
-        }
         tun.connections.push(conn);
     });
 
@@ -95,15 +60,7 @@ function addTunnel(portnum, ctrl_conn ) {
         tun.connections.forEach( function(co) {
             if( co.id == cid ) {
                 co.stats.sendbytes += buf.length;
-                if( g_enable_rebuffering ) {
-                    var pushed = co.pushToQueue(buf);
-                    if(pushed == false ) {
-                        console.log( "can't push to buffer" );
-                        co.destroy();
-                    }
-                } else {
-                    co.write(buf);
-                }
+                co.write(buf);
             }
         });
     }
@@ -114,11 +71,6 @@ function addTunnel(portnum, ctrl_conn ) {
             }
         });
     };
-    tun.poll = function() {
-        tun.connections.forEach( function(co) {
-            co.poll();
-        });
-    }
     tun.getStats = function() {
         var out = [];
         tun.connections.forEach( function(co) {
@@ -229,16 +181,10 @@ function statLog() {
         console.log(stat);
     });
 }
-function pollAllTunnels() {
-    g_tunnels.forEach( function(t) {
-        t.poll();
-    });
-}
+
 setInterval( statLog, 10000 );
-setInterval( pollAllTunnels, 1 );
 
 var argv = minimist( process.argv.slice(2));
-if( argv["rebuf"] == true ) g_enable_rebuffering = true;
 
 
-console.log( "TCP server listening! rebuf:", g_enable_rebuffering );
+console.log( "TCP server listening!" );
