@@ -38,7 +38,13 @@ function addTunnel(portnum, ctrl_conn ) {
             ctrl_conn.receiveRemoteData(portnum,conn.id,d);
         });
         conn.on( "error", function(e) {
-            ctrl_conn.receiveRemoteError(portnum,conn.id,e);
+            if( conn.error ) {
+                // dont repeat
+            } else {
+                conn.error = true;
+                conn.destroy();
+                ctrl_conn.receiveRemoteError(portnum,conn.id,e);
+            }
         });
         // rebuffering
         conn.queue = new Buffer(0);
