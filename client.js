@@ -28,6 +28,7 @@ function Tunnel(remport,tgthost,tgtport) {
         co.remote_id = remote_id;
         co.remote_data_count = 0;
         co.remote_data_total_bytes = 0;
+        co.setNoDelay();
         
         co.on( "data", function(d) {
 //            console.log( "data from target server:", d );

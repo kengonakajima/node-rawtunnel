@@ -27,6 +27,7 @@ function addTunnel(portnum, ctrl_conn ) {
     var tun = new Tunnel(portnum);
     
     var sv = net.createServer( function(conn) {
+        conn.setNoDelay();
         conn.id = getNewId();
         console.log("Connection for tunnel from remote:", conn.remoteAddress, conn.localAddress, "newid:", conn.id );
         ctrl_conn.newRemoteConnection(portnum,conn.id);
@@ -90,6 +91,7 @@ function addTunnel(portnum, ctrl_conn ) {
 
 // main server
 var server = net.createServer( function(conn) {
+    conn.setNoDelay();
     console.log("Connection from " + conn.remoteAddress );
 
     // init
