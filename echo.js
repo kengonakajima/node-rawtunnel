@@ -28,6 +28,12 @@ var server = net.createServer(function (socket) {
             socket.write(d);
         }        
     } );
+    socket.on("error", function(e) {
+        console.log( "erorr:",e);
+    });
+    socket.on("close", function() {
+        console.log( "close" );
+    });
 });
 server.listen(7777, "0.0.0.0");
 console.log("TCP server listening on port 7777");
