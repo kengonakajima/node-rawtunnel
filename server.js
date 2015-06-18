@@ -41,10 +41,15 @@ function addTunnel(portnum, ctrl_conn ) {
             if( conn.error ) {
                 // dont repeat
             } else {
+                console.log( "tunneling socket error. conn.id:", conn.id, "error:",e );
                 conn.error = true;
                 conn.destroy();
                 ctrl_conn.receiveRemoteError(portnum,conn.id,e);
             }
+        });
+        conn.on( "close", function() {
+            console.log( "tunneling socket closed. conn.id:", conn.id );
+            ctrl_conn.receiveRemoteClose(portnum,conn.id);
         });
         tun.connections.push(conn);
     });
@@ -107,23 +112,29 @@ var server = net.createServer( function(conn) {
         for(var i=0;i<data.length;i++) dataary[i] = data[i];
         var o = [ "data", portnum,cid,  dataary ];
         conn.write( msgpack.pack(o));
-    }
+    };
     conn.newRemoteConnection = function( portnum, cid ) {
         console.log( "newRemoteConnection: portnum:", portnum, "cid:",cid );
         var o = [ "accept", portnum, cid ];
         conn.write( msgpack.pack(o));
-    }
+    };
     conn.receiveRemoteError = function( portnum, cid, e ) {
-        console.log( "receiveRemoteError: portnum",portnum, "cid:",cid, "e:",e);
+        console.log( "receiveRemoteError: portnum:",portnum, "cid:",cid, "e:",e);
         var o = [ "error", portnum, cid, e ];
+        conn.write(msgpack.pack(o));    
+    };
+    conn.receiveRemoteClose = function( portnum, cid ) {
+        console.log( "receiveRemoteClose: portnum:",portnum, "cid:",cid );
+        var o = [ "close", portnum, cid ] ;
         conn.write(msgpack.pack(o));
-    }
+    };
+    
     if( !g_passcode ) {
         conn.authenticated = true;
     } else {
         conn.authenticated = false;
     }
-    
+
     var ms = new msgpack.Stream(conn);
     ms.addListener( "msg", function(m) {
 //        console.log( "received message:", m );
@@ -175,6 +186,7 @@ var server = net.createServer( function(conn) {
             var portnum = m[1];
             var cid = m[2];
             var e = m[3];
+            console.log( "received error command from port:", portnum, "cid:", cid, "error:",e );
             conn.tunnels.forEach( function(tun) {
                 tun.receiveTargetError(cid,e);
             });
