@@ -113,16 +113,23 @@ function Controller(co) {
             var buf = new Buffer( dataary.length );
             for(var i=0;i<dataary.length;i++) buf[i] = dataary[i];
             tun.receiveRemoteData( cid, buf );
-        } else if( cmd == "accept" ) { // [ connid ]
+        } else if( cmd == "accept" ) { // [ portnum, connid ]
             var portnum = m[1]
             var connid = m[2];
             var tun = ctl.findTunnel(portnum);
             tun.connectToTarget(connid,ctl) 
-        } else if( cmd == "error" ) { // [ connid, e ]
+        } else if( cmd == "error" ) { // [ portnum, connid, e ]
             var portnum = m[1] ;
             var connid = m[2];
             var tun = ctl.findTunnel(portnum);
-            tun.close(connid);            
+            console.log( "received an error on tunneling socket id:", connid );
+            tun.close(connid);
+        } else if( cmd == "close" ) { // [ portnum, connid ]
+            var portnum = m[1];
+            var connid = m[2];
+            var tun = ctl.findTunnel(portnum);
+            console.log( "received close on tunneling socket id:", connid );            
+            tun.close(connid);
         } else if( cmd == "list" ) { // [ {port:N, error:MSG}, ... ] }
             m.slice(1).forEach( function(s) {
                 console.log( "Tunnel:", s );
