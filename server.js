@@ -37,10 +37,10 @@ function addTunnel(portnum, ctrl_conn ) {
             ctrl_conn.receiveRemoteData(portnum,conn.id,d);
         });
         conn.on( "error", function(e) {
-            console.log( "tunneling socket error. conn.id:", conn.id, "error:",e );
             if( conn.error ) {
                 // dont repeat
             } else {
+                console.log( "tunneling socket error. conn.id:", conn.id, "error:",e );
                 conn.error = true;
                 conn.destroy();
                 ctrl_conn.receiveRemoteError(portnum,conn.id,e);
