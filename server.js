@@ -6,8 +6,9 @@ var minimist = require("minimist");
 
 var control_port = 7770;
 
+var g_passcode = null; // No authentication when null or undefined
+
 var g_tunnels = [];
-                 
 var g_idgen = 0;
 
 function getNewId() {
@@ -117,6 +118,11 @@ var server = net.createServer( function(conn) {
         var o = [ "error", portnum, cid, e ];
         conn.write(msgpack.pack(o));
     }
+    if( !g_passcode ) {
+        conn.authenticated = true;
+    } else {
+        conn.authenticated = false;
+    }
     
     var ms = new msgpack.Stream(conn);
     ms.addListener( "msg", function(m) {
@@ -125,13 +131,30 @@ var server = net.createServer( function(conn) {
         
         if( cmd == "echo" ) {
             var rest = m.slice(1,1+m.length);
-            conn.write( msgpack.pack( ["echo"].concat(rest)) );            
+            conn.write( msgpack.pack( ["echo"].concat(rest)) );
+        } else if( cmd == "auth" ) { // passcode handshake
+            if( !g_passcode ) {
+                console.log( "received auth, but no passcode is set." );
+            } else {
+                var passcode = m[1];
+                if( passcode == g_passcode ) {
+                    console.log( "received auth, success! from:", conn.remoteAddress );
+                    conn.authenticated = true;
+                } else {
+                    console.log( "received auth, failed! from:", conn.remoteAddress );
+                    conn.authenticated = false;
+                }
+            }
         } else if( cmd == "tunnel" ) { // create a new tunnel port. arg=["add", PORTNUM] ret=["OK"] or ["ERROR"]
-            var portnum = m[1];
-            var tun = addTunnel( portnum, conn );
-            console.log("new tunnel:", tun );
-            conn.tunnels.push(tun);
-            g_tunnels.push(tun);
+            if( conn.authenticated ) {
+                var portnum = m[1];
+                var tun = addTunnel( portnum, conn );
+                console.log("new tunnel created.", portnum );
+                conn.tunnels.push(tun);
+                g_tunnels.push(tun);
+            } else {
+                console.log( "received tunnel command, but not authenticated. from:", conn.remoteAddress );
+            }
         } else if( cmd == "list" ) {
             var out = [];
             conn.tunnels.forEach( function(tun) {
@@ -188,5 +211,6 @@ setInterval( statLog, 10000 );
 
 var argv = minimist( process.argv.slice(2));
 
+g_passcode = argv["passcode"];
 
-console.log( "TCP server listening!" );
+console.log( "TCP server listening! passcode:", g_passcode );

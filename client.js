@@ -70,12 +70,14 @@ function Tunnel(remport,tgthost,tgtport) {
 }
 
 
-function Controller(co) {
+function Controller(co,passcode) {
     this.conn = co;
     this.tunnels = [];
+    this.passcode = passcode;
     
     // echo test first
     co.write( msgpack.pack( [ "echo", "aaa", "bbb" ] ) );
+    co.write( msgpack.pack( [ "auth", passcode ] ) );
     co.on("error", function(e) {
         console.log("fatal: control connection error:",e );
         process.exit(1);
@@ -141,9 +143,9 @@ function Controller(co) {
     ms.addListener( "msg", this.receiveMessage );
 }
 
-function createController(host,port) {
+function createController(host,port,passcode) {
     var co = net.connect( { "host" : host, "port" : port } );
-    var ctrl = new Controller(co);
+    var ctrl = new Controller(co,passcode);
     return ctrl;    
 }
 
@@ -163,6 +165,8 @@ var server_host = argv["_"][0];
 if( !server_host ) printUsageExit();
 
 var tunnel_args = [].concat(argv["R"]);
+
+var passcode = argv["passcode"];
 
 var confs = [];
 
@@ -188,7 +192,7 @@ tunnel_args.forEach( function(arg) {
 
 
 
-var ctl = createController( server_host, control_port );
+var ctl = createController( server_host, control_port, passcode );
 
 confs.forEach( function(conf) {
     ctl.addTunnel( conf.tunnel_port, conf.target_host, conf.target_port );
