@@ -27,6 +27,23 @@ node ./client.js hogeserver.com -R 60000:localhost:60000 -R 60001:localhost:6000
 ~~~
 
 
+Passcode
+====
+You can add passcode to access the server for basic security.
+
+Server side:
+
+~~~
+node ./server.js --passcode=asdfasdf
+~~~
+
+Client side:
+
+~~~
+node ./client.js hogeserver.com -R 60000:localhost:60000 -R 60001:localhost:60001 --passcode=asdfasdf
+~~~
+
+
 LICENSE
 ====
 MIT
