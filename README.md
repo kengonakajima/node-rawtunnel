@@ -48,7 +48,7 @@ Timeout
 ====
 Server (and eventually client) will automatically quit after 30 minutes of idling.
 To skip this timeout, you can give "--skip_timeout" option.
-
+You can also set timeout in second like "--timeout_sec=30"
 
 LICENSE
 ====

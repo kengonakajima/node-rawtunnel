@@ -247,5 +247,8 @@ var argv = minimist( process.argv.slice(2));
 
 g_passcode = argv["passcode"];
 g_skip_timeout = argv["skip_timeout"]
+if( argv["timeout_sec"] ) {
+    g_quit_after_idle_sec = parseInt( argv["timeout_sec"] );
+}
 
-console.log( "TCP server listening! passcode:", g_passcode, "skip_timeout:", g_skip_timeout );
+console.log( "TCP server listening! passcode:", g_passcode, "skip_timeout:", g_skip_timeout, "timeout:", g_quit_after_idle_sec );
