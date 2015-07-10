@@ -11,6 +11,19 @@ var g_passcode = null; // No authentication when null or undefined
 var g_tunnels = [];
 var g_idgen = 0;
 
+var g_quit_after_idle_sec = 30*60;
+
+var g_last_access = Date.now();
+var g_skip_timeout = false;
+
+function updateLastAccess() {
+    g_last_access = Date.now();
+}
+function getIdleTimeSec() {
+    return (Date.now() - g_last_access)/1000;
+}
+
+
 function getNewId() {
     g_idgen ++;
     return g_idgen;
@@ -137,7 +150,7 @@ var server = net.createServer( function(conn) {
 
     var ms = new msgpack.Stream(conn);
     ms.addListener( "msg", function(m) {
-//        console.log( "received message:", m );
+//        console.log( "received message:", m );        
         var cmd = m[0];
         
         if( cmd == "echo" ) {
@@ -173,6 +186,7 @@ var server = net.createServer( function(conn) {
             });
             conn.write( msgpack.pack( ["list"].concat(out)));
         } else if( cmd == "data" ) { // [ "data", portnum, cid, data ]
+            updateLastAccess();
             var portnum = m[1];
             var cid = m[2];
             var dataary = m[3];
@@ -209,6 +223,7 @@ var server = net.createServer( function(conn) {
 server.listen( control_port, "0.0.0.0" );
 
 function statLog() {
+    console.log( "statLog: idle:", getIdleTimeSec(), "seconds. Tunnels:" );
     g_tunnels.forEach( function(t) {
         var stat = {
             "portnum": t.portnum,
@@ -217,6 +232,13 @@ function statLog() {
         };
         console.log(stat);
     });
+
+    if( !g_skip_timeout ) {
+        if( getIdleTimeSec() > g_quit_after_idle_sec ) {
+            console.log( "Idling for ", g_quit_after_idle_sec, " secs. quitting." );
+            process.exit(0);
+        }
+    }
 }
 
 setInterval( statLog, 10000 );
@@ -224,5 +246,6 @@ setInterval( statLog, 10000 );
 var argv = minimist( process.argv.slice(2));
 
 g_passcode = argv["passcode"];
+g_skip_timeout = argv["skip_timeout"]
 
-console.log( "TCP server listening! passcode:", g_passcode );
+console.log( "TCP server listening! passcode:", g_passcode, "skip_timeout:", g_skip_timeout );
