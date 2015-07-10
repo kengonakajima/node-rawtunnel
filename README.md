@@ -44,6 +44,12 @@ node ./client.js hogeserver.com -R 60000:localhost:60000 -R 60001:localhost:6000
 ~~~
 
 
+Timeout
+====
+Server (and eventually client) will automatically quit after 30 minutes of idling.
+To skip this timeout, you can give "--skip_timeout" option.
+
+
 LICENSE
 ====
 MIT
